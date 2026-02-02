@@ -11,6 +11,7 @@
   #sendBtn { padding: 10px 20px; margin-left: 10px; }
   .message { margin: 5px 0; }
   .admin-btn { color:red; margin-left:5px; cursor:pointer; }
+  .ban-btn { color:orange; margin-left:5px; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -42,7 +43,7 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 let currentUser;
-const adminEmail = "admin@example.com"; // Replace with your admin email
+const adminEmail = "YOUR_ADMIN_EMAIL_HERE"; // replace with your admin email
 
 // Redirect if not logged in
 auth.onAuthStateChanged(user => {
@@ -85,13 +86,23 @@ function loadMessages() {
         div.classList.add('message');
         div.textContent = msg.user + ': ' + msg.text;
 
-        // Add admin buttons if logged in as admin
+        // Admin actions
         if(currentUser.email === adminEmail) {
           const delBtn = document.createElement('span');
           delBtn.textContent = 'Delete';
           delBtn.classList.add('admin-btn');
           delBtn.onclick = () => doc.ref.delete();
           div.appendChild(delBtn);
+
+          const banBtn = document.createElement('span');
+          banBtn.textContent = 'Ban';
+          banBtn.classList.add('ban-btn');
+          banBtn.onclick = () => {
+            db.collection('users').where('email','==',msg.user).get().then(qs=>{
+              qs.forEach(u => u.ref.update({banned:true}));
+            });
+          };
+          div.appendChild(banBtn);
         }
 
         chatDiv.appendChild(div);
