@@ -26,21 +26,11 @@
     }
 
     @keyframes bounce {
-      0% {
-        transform: translateY(-300px);
-      }
-      50% {
-        transform: translateY(20px);
-      }
-      70% {
-        transform: translateY(-10px);
-      }
-      90% {
-        transform: translateY(5px);
-      }
-      100% {
-        transform: translateY(0);
-      }
+      0% { transform: translateY(-300px); }
+      50% { transform: translateY(20px); }
+      70% { transform: translateY(-10px); }
+      90% { transform: translateY(5px); }
+      100% { transform: translateY(0); }
     }
 
     button {
@@ -64,8 +54,57 @@
 <body>
   <h1>Fix Stegas</h1>
   <div>
-    <button onclick="window.location.href='login.html'">Login</button>
-    <button onclick="window.location.href='register.html'">Register</button>
+    <button id="loginBtn">Login</button>
+    <button id="registerBtn">Register</button>
   </div>
+
+  <!-- Firebase App (the core Firebase SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/10.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.6.0/firebase-auth-compat.js"></script>
+
+  <script>
+    // Your Firebase configuration
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // Login button
+    document.getElementById('loginBtn').addEventListener('click', () => {
+      const email = prompt('Enter your email:');
+      const password = prompt('Enter your password:');
+      auth.signInWithEmailAndPassword(email, password)
+        .then(userCredential => {
+          alert('Logged in as ' + userCredential.user.email);
+          // Redirect after login
+          window.location.href = 'dashboard.html';
+        })
+        .catch(error => {
+          alert(error.message);
+        });
+    });
+
+    // Register button
+    document.getElementById('registerBtn').addEventListener('click', () => {
+      const email = prompt('Enter your email:');
+      const password = prompt('Enter your password:');
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(userCredential => {
+          alert('Account created for ' + userCredential.user.email);
+          window.location.href = 'dashboard.html';
+        })
+        .catch(error => {
+          alert(error.message);
+        });
+    });
+  </script>
 </body>
 </html>
