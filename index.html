@@ -115,10 +115,9 @@
       errorDiv.textContent = '';
       auth.signInWithEmailAndPassword(email, password)
         .then(userCredential => {
-          // Check if user is banned
           db.collection('users').doc(userCredential.user.uid).get()
             .then(doc => {
-              if(doc.exists && doc.data().banned) {
+              if(doc.exists && doc.data().banned){
                 auth.signOut();
                 errorDiv.textContent = 'You are banned!';
               } else {
@@ -139,7 +138,8 @@
         .then(userCredential => {
           db.collection('users').doc(userCredential.user.uid).set({
             email: email,
-            banned: false
+            banned: false,
+            photoURL: "https://i.imgur.com/pi2JlKR.png" // default avatar
           });
           window.location.href = 'chat.html';
         })
