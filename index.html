@@ -1,1 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fix Stegas</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
 
+    h1 {
+      color: blue;
+      font-size: 60px;
+      margin-bottom: 30px;
+      animation: bounce 1s ease-out forwards;
+      transform: translateY(-100px);
+    }
+
+    @keyframes bounce {
+      0% { transform: translateY(-300px); }
+      50% { transform: translateY(20px); }
+      70% { transform: translateY(-10px); }
+      90% { transform: translateY(5px); }
+      100% { transform: translateY(0); }
+    }
+
+    .auth-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    input {
+      margin: 5px 0;
+      padding: 10px;
+      font-size: 16px;
+      width: 250px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    button {
+      margin: 10px 0;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      color: white;
+      background-color: #007BFF;
+      transition: transform 0.2s;
+      width: 150px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+      transform: scale(1.05);
+    }
+
+    .error {
+      color: red;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Fix Stegas</h1>
+
+  <div class="auth-container">
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button id="loginBtn">Login</button>
+    <button id="registerBtn">Register</button>
+    <div class="error" id="error"></div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.6.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAWLLh2eWpATxKPQpgyTAf-dufkB8NRh6E",
+      authDomain: "forum-11d1d.firebaseapp.com",
+      projectId: "forum-11d1d",
+      storageBucket: "forum-11d1d.firebasestorage.app",
+      messagingSenderId: "447915576463",
+      appId: "1:447915576463:web:3a07d16e1bc9b73063b4fa"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const errorDiv = document.getElementById('error');
+
+    const adminEmail = "YOUR_ADMIN_EMAIL_HERE"; // replace with your email
+
+    document.getElementById('loginBtn').addEventListener('click', () => {
+      const email = emailInput.value;
+      const password = passwordInput.value;
+      errorDiv.textContent = '';
+      auth.signInWithEmailAndPassword(email, password)
+        .then(userCredential => {
+          db.collection('users').doc(userCredential.user.uid).get()
+            .then(doc => {
+              if(doc.exists && doc.data().banned){
+                auth.signOut();
+                errorDiv.textContent = 'You are banned!';
+              } else {
+                window.location.href = 'chat.html';
+              }
+            });
+        })
+        .catch(error => {
+          errorDiv.textContent = error.message;
+        });
+    });
+
+    document.getElementById('registerBtn').addEventListener('click', () => {
+      const email = emailInput.value;
+      const password = passwordInput.value;
+      errorDiv.textContent = '';
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(userCredential => {
+          db.collection('users').doc(userCredential.user.uid).set({
+            email: email,
+            banned: false,
+            photoURL: "https://i.imgur.com/pi2JlKR.png" // default avatar
+          });
+          window.location.href = 'chat.html';
+        })
+        .catch(error => {
+          errorDiv.textContent = error.message;
+        });
+    });
+  </script>
+</body>
+</html>
