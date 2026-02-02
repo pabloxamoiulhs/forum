@@ -1,0 +1,145 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Free Forum</title>
+  <style>
+    body{font-family:Arial;background:#111;color:#0f0;margin:0;padding:20px}
+    header{display:flex;justify-content:space-between}
+    button{background:#0f0;color:#111;border:none;padding:8px 12px;cursor:pointer}
+    #posts{margin-top:20px}
+    .post{border-left:3px solid #0f0;padding:8px;margin:8px 0}
+    small{color:#aaa}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Free Forum</h1>
+    <div>
+      <button id="loginBtn">Login</button>
+      <button id="logoutBtn" style="display:none">Logout</button>
+      <span id="user"></span>
+    </div>
+  </header>
+
+  <div id="auth" style="display:none">
+    <input type="email" id="email" placeholder="Email">
+    <button id="regBtn">Register / Login</button>
+  </div>
+
+  <div id="postBox" style="display:none">
+    <textarea id="body" rows="3" placeholder="Write anything…"></textarea><br>
+    <button id="sendBtn">Post</button>
+  </div>
+
+  <div id="posts"></div>
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+    import { getAuth, signInWithEmailLink, sendSignInLinkToEmail, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
+    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/9.22.0/firestore.js';
+
+    // ➊ paste YOUR config here (from step 2-d)
+    const firebaseConfig = {
+      apiKey: "YOUR-KEY",
+      authDomain: "YOUR-PROJECT.firebaseapp.com",
+      projectId: "YOUR-PROJECT",
+      storageBucket: "YOUR-PROJECT.appspot.com",
+      messagingSenderId: "XXX",
+      appId: "YOUR-APP-ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+    const OWNER = 'owner@site.com';   // ← your admin email
+
+    let user = null;
+
+    // ➋ Auth state
+    onAuthStateChanged(auth, u => {
+      user = u;
+      if (u) {
+        document.getElementById('loginBtn').style.display = 'none';
+        document.getElementById('logoutBtn').style.display = 'inline';
+        document.getElementById('user').textContent = u.email;
+        document.getElementById('auth').style.display = 'none';
+        document.getElementById('postBox').style.display = 'block';
+      } else {
+        document.getElementById('loginBtn').style.display = 'inline';
+        document.getElementById('logoutBtn').style.display = 'none';
+        document.getElementById('user').textContent = '';
+        document.getElementById('auth').style.display = 'block';
+        document.getElementById('postBox').style.display = 'none';
+      }
+      loadPosts();
+    });
+
+    // ➌ Email link login (no password)
+    document.getElementById('regBtn').onclick = async () => {
+      const email = document.getElementById('email').value;
+      const actionCodeSettings = {
+        url: window.location.href,
+        handleCodeInApp: true
+      };
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      alert('Check your email – click the link we just sent.');
+      window.localStorage.setItem('emailForSignIn', email);
+    };
+    // Complete sign-in if user arrived via link
+    if (location.href.includes('apiKey')) {
+      const email = window.localStorage.getItem('emailForSignIn');
+      if (email) {
+        signInWithEmailLink(auth, email, location.href)
+          .then(() => { window.localStorage.removeItem('emailForSignIn'); })
+          .catch(err => alert(err.message));
+      }
+    }
+
+    document.getElementById('logoutBtn').onclick = () => signOut(auth);
+
+    // ➍ Posting
+    document.getElementById('sendBtn').onclick = async () => {
+      const body = document.getElementById('body').value.trim();
+      if (!body) return;
+      await addDoc(collection(db, 'posts'), {
+        author: user.email,
+        body: body,
+        created: serverTimestamp(),
+        likes: 0
+      });
+      document.getElementById('body').value = '';
+    };
+
+    // ➎ Real-time feed
+    function loadPosts() {
+      const q = query(collection(db, 'posts'), orderBy('created', 'desc'));
+      onSnapshot(q, snap => {
+        const html = snap.docs.map(d => {
+          const data = d.data();
+          const isOwner = user && user.email === OWNER;
+          return `
+            <div class="post">
+              <b>${data.author}</b> <small>${data.created?.toDate().toLocaleString()}</small><br>
+              ${data.body}<br>
+              <small>❤️ ${data.likes}</small>
+              ${isOwner ? `
+                <button onclick="del('${d.id}')">Delete</button>
+                <button onclick="ban('${data.author}')">Ban user</button>
+              ` : ''}
+            </div>`;
+        }).join('');
+        document.getElementById('posts').innerHTML = html;
+      });
+    }
+
+    // ➏ Admin actions
+    window.del = id => deleteDoc(doc(db, 'posts', id));
+    window.ban = email => {
+      // Firestore rule snippet below blocks banned emails instantly
+      alert('Banned ' + email + ' (add email to banned list in console if you use rules)');
+    };
+  </script>
+</body>
+</html>
