@@ -87,6 +87,7 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.6.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.6.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore-compat.js"></script>
 
   <script>
     const firebaseConfig = {
@@ -100,10 +101,13 @@
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
+    const db = firebase.firestore();
 
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const errorDiv = document.getElementById('error');
+
+    const adminEmail = "YOUR_ADMIN_EMAIL_HERE"; // replace with your email
 
     document.getElementById('loginBtn').addEventListener('click', () => {
       const email = emailInput.value;
@@ -111,8 +115,16 @@
       errorDiv.textContent = '';
       auth.signInWithEmailAndPassword(email, password)
         .then(userCredential => {
-          alert('Logged in as ' + userCredential.user.email);
-          window.location.href = 'dashboard.html';
+          // Check if user is banned
+          db.collection('users').doc(userCredential.user.uid).get()
+            .then(doc => {
+              if(doc.exists && doc.data().banned) {
+                auth.signOut();
+                errorDiv.textContent = 'You are banned!';
+              } else {
+                window.location.href = 'chat.html';
+              }
+            });
         })
         .catch(error => {
           errorDiv.textContent = error.message;
@@ -125,8 +137,11 @@
       errorDiv.textContent = '';
       auth.createUserWithEmailAndPassword(email, password)
         .then(userCredential => {
-          alert('Account created for ' + userCredential.user.email);
-          window.location.href = 'dashboard.html';
+          db.collection('users').doc(userCredential.user.uid).set({
+            email: email,
+            banned: false
+          });
+          window.location.href = 'chat.html';
         })
         .catch(error => {
           errorDiv.textContent = error.message;
